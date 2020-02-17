@@ -6,7 +6,7 @@
 5. CMake (v3.5.1 is used by the original developer)
 
 ## Default path
-Put these lines in .bashrc file for convinience
+Put these lines in .bashrc file for convenience
 ```bash
 export AVD="AstrobeeAndroidSim"
 export EMULATOR=$HOME/Android/Sdk/tools/emulator
