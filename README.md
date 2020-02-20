@@ -4,6 +4,7 @@
 3. Astrobee robot software
 4. Gazebo 7 
 5. CMake (v3.5.1 is used by the original developer)
+6. Read and follow the [Manual](https://jaxa.krpc.jp/download/files/Kibo-RPC_PGManual.pdf)
 
 ## Default path
 Put these lines in .bashrc file for convenience
