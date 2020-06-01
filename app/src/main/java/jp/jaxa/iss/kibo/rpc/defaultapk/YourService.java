@@ -21,16 +21,28 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sourceforge.zbar.ImageScanner;
+import net.sourceforge.zbar.Image;
+import net.sourceforge.zbar.Symbol;
+import net.sourceforge.zbar.SymbolSet;
+import net.sourceforge.zbar.Config;
+
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them in Astrobee
  */
 
+
+
 public class YourService extends KiboRpcService {
 
+    static {
+        System.loadLibrary("iconv");
+    }
 
     @Override
     protected void runPlan1() {
+
 
         api.judgeSendStart();
 
@@ -38,7 +50,10 @@ public class YourService extends KiboRpcService {
         Log.i("SPACECAT", "Destination is reached");
         moveToWrapper(11.37, -5.75, 4.5, 0, 0, 0, 1, 0);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(0);
+        decodeWithZbar();
+        decodeWithZbar();
+        decodeWithZbar();
+        //decodeQRCode(0);
         moveToWrapper(11, -6, 5.45, 0, -0.7071068, 0, 0.7071068, 1);
         Log.i("SPACECAT", "Destination is reached");
         decodeQRCode(1);
@@ -136,6 +151,72 @@ public class YourService extends KiboRpcService {
         }
     }
 
+    private void decodeWithZbar(){
+        ImageScanner scanner;
+        scanner = new ImageScanner();
+
+        scanner.setConfig(0, Config.X_DENSITY, 3);
+        scanner.setConfig(0, Config.Y_DENSITY, 3);
+
+        scanner.setConfig(Symbol.NONE, Config.ENABLE, 0);
+        // bar code
+        scanner.setConfig(Symbol.I25, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.CODABAR, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.CODE128, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.CODE39, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.CODE93, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.DATABAR, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.DATABAR_EXP, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.EAN13, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.EAN8, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.ISBN10, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.ISBN13, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.UPCA, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.UPCE, Config.ENABLE, 0);
+        scanner.setConfig(Symbol.PARTIAL, Config.ENABLE, 0);
+        // qr code
+        scanner.setConfig(Symbol.QRCODE, Config.ENABLE, 1);
+        scanner.setConfig(Symbol.PDF417, Config.ENABLE, 1);
+
+        Mat navcam_mat;
+        Bitmap navcam_bitmap = api.getBitmapNavCam();
+
+        int width = navcam_bitmap.getWidth();
+        int height = navcam_bitmap.getHeight();
+        int size = width * height;
+
+        int[] pixels = new int[size];
+
+        navcam_bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        byte[] pixelsData = new byte[size];
+        for (int i = 0; i < size; i++) {
+            pixelsData[i] = (byte) pixels[i];
+        }
+
+        Image barcode = new Image(width, height, "Y800");
+        barcode.setData(pixelsData);
+
+        int result = scanner.scanImage(barcode);
+        String resultStr = null;
+
+        if (result != 0) {
+            SymbolSet syms = scanner.getResults();
+            for (Symbol sym : syms) {
+                resultStr = sym.getData();
+                Log.i("QRCODE FOUND BABYYYYY", resultStr);
+            }
+        }else{
+            Log.i("QRCODE IS NOT BABYYYYY", "SADDD");
+        }
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private Void decodeQRCode(int target_qr) {
         Log.i("SPACECAT", "decodeQRCode function is called, Scanning QR for " + target_qr);
@@ -167,7 +248,7 @@ public class YourService extends KiboRpcService {
             navcam_mat = api.getMatNavCam();
 
             //get undistorted navcam matrix
-            navcam_mat_undistort = undistort_camera(navcam_mat);
+            navcam_mat_undistort = navcam_mat;
 
             //converting to bitmap
             navcam_bit_undistort = matToBitmap(navcam_mat_undistort);
