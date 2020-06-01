@@ -67,9 +67,9 @@ public class YourService extends KiboRpcService {
 
         api.judgeSendFinishSimulation();
 
-        /*
 
-        moveToWrapper(11.05, -7.7, 4.65, 0, 0, 0.7071068, -0.7071068);
+
+        moveToWrapper(11.05, -7.7, 4.65, 0, 0, 0.7071068, -0.7071068, 99);
 
 
 
@@ -77,10 +77,10 @@ public class YourService extends KiboRpcService {
         double qr_pos_y = Double.valueOf(QRData.pos_y);
         double qr_pos_z = Double.valueOf(QRData.pos_z);
 
-        moveToWrapper(11.05, qr_pos_y, 4.65, 0, 0, 0.7071068, -0.7071068);
+        moveToWrapper(11.05, qr_pos_y, 4.65, 0, 0, 0.7071068, -0.7071068, 99);
 
         //get to the actual P3
-        moveToWrapper(qr_pos_x+0.17-0.0422, qr_pos_y, qr_pos_z+0.170+0.0826, 0, 0, 0.7071068, -0.7071068);
+        moveToWrapper(qr_pos_x+0.17-0.0422, qr_pos_y, qr_pos_z+0.170+0.0826, 0, 0, 0.7071068, -0.7071068, 99);
 
         decode_AR();
 
@@ -89,7 +89,7 @@ public class YourService extends KiboRpcService {
         api.judgeSendFinishSimulation();
 
 
-         */
+
     }
 
 
