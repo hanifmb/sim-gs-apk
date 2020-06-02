@@ -2,6 +2,8 @@ package jp.jaxa.iss.kibo.rpc.defaultapk;
 
 import android.graphics.Bitmap;
 import android.util.Log;
+
+import gov.nasa.arc.astrobee.Kinematics;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 import gov.nasa.arc.astrobee.Result;
 import gov.nasa.arc.astrobee.types.Point;
@@ -40,25 +42,158 @@ public class YourService extends KiboRpcService {
         System.loadLibrary("iconv");
     }
 
+    private double cal_error(double setpoint_state, double current_state){
+
+        double error = Math.abs(current_state-setpoint_state);
+        return error;
+
+    }
+
+    private void moveToCustom(double target_x, double target_y, double target_z,
+                              double target_qua_x, double target_qua_y, double target_qua_z,
+                              double target_qua_w, String mode){
+
+        Kinematics kinematic = api.getTrustedRobotKinematics();
+
+        double current_x = kinematic.getPosition().getX();
+        double current_y = kinematic.getPosition().getY();
+        double current_z = kinematic.getPosition().getZ();
+        double current_qua_x = kinematic.getOrientation().getX();
+        double current_qua_y = kinematic.getOrientation().getY();
+        double current_qua_z = kinematic.getOrientation().getZ();
+        double current_qua_w = kinematic.getOrientation().getW();
+
+        moveRelativeWrapper(target_x-current_x, target_y-current_y, target_z-current_z,
+                            target_qua_x, target_qua_y, target_qua_z, target_qua_w);
+
+        if (mode == "QUICK_TRANSITION"){
+            while (cal_error(current_x, target_x) > 0.15 &&
+                cal_error(current_y, target_y) > 0.15 &&
+                cal_error(current_z, target_z) > 0.15)
+            {
+                moveRelativeWrapper(target_x-current_x, target_y-current_y, target_z-current_z,
+                                    target_qua_x, target_qua_y, target_qua_z, target_qua_w);
+
+                kinematic = api.getTrustedRobotKinematics();
+
+                current_x = kinematic.getPosition().getX();
+                current_y = kinematic.getPosition().getY();
+                current_z = kinematic.getPosition().getZ();
+
+            }
+        }else if (mode == "QR_SCANNING"){
+            while(cal_error(current_x, target_x) > 0.15 &&
+                cal_error(current_y, target_y) > 0.15 &&
+                cal_error(current_z, target_z) > 0.15 &&
+                cal_error(current_qua_x, target_qua_x) > 0.083 &&
+                cal_error(current_qua_y, target_qua_y) > 0.083 &&
+                cal_error(current_qua_z, target_qua_z) > 0.083 &&
+                cal_error(current_qua_w, target_qua_w) > 0.083)
+            {
+                moveRelativeWrapper(target_x-current_x, target_y-current_y, target_z-current_z,
+                        target_qua_x, target_qua_y, target_qua_z, target_qua_w);
+
+                kinematic = api.getTrustedRobotKinematics();
+
+                current_x = kinematic.getPosition().getX();
+                current_y = kinematic.getPosition().getY();
+                current_z = kinematic.getPosition().getZ();
+                current_qua_x = kinematic.getOrientation().getX();
+                current_qua_y = kinematic.getOrientation().getY();
+                current_qua_z = kinematic.getOrientation().getZ();
+                current_qua_w = kinematic.getOrientation().getW();
+            }
+        }
+
+    }
+
     @Override
     protected void runPlan1() {
 
 
         api.judgeSendStart();
 
+        moveToCustom(11.25, -3.75, 4.85, 0, 0, 0, 1, "QUICK_TRANSITION");
+        moveToCustom(11.37, -5.75, 4.5, 0, 0, 0, 1, "QUICK_TRANSITION");
+        moveToCustom(11, -6, 5.45, 0, -0.7071068, 0, 0.7071068, "QUICK_TRANSITION");
+        moveToCustom(11, -5.5, 4.43, 0, 0.7071068, 0, 0.7071068, "QR_SCANNING");
+        moveToCustom(11, -6, 5.45, 0, -0.7071068, 0, 0.7071068, "QUICK_TRANSITION");
+
+        moveToCustom(10.45, -6.45, 4.7, 0, 0, 0.7071068, -0.7071068, "QUICK_TRANSITION");
+        moveToCustom(10.45, -6.75, 4.7, 0, 0, 0, 1, "QUICK_TRANSITION");
+        moveToCustom(10.95, -6.75, 4.7, 0, 0, 0, 1, "QUICK_TRANSITION");
+        moveToCustom(10.95, -7.7, 4.7, 0, 0, 0.7071068, -0.7071068, "QUICK_TRANSITION");
+
+        api.judgeSendFinishSimulation();
+
+        ///////////////////////////////////////////////////////////////
+        Kinematics kinematic = api.getTrustedRobotKinematics();
+        double current_x = kinematic.getPosition().getX();
+        double current_y = kinematic.getPosition().getY();
+        double current_z = kinematic.getPosition().getZ();
+
+        moveRelativeWrapper(11.25-current_x, -3.75-current_y, 4.85-current_z,
+                            0, 0, 0, 1);
+
+        kinematic = api.getTrustedRobotKinematics();
+        current_x = kinematic.getPosition().getX();
+        current_y = kinematic.getPosition().getY();
+        current_z = kinematic.getPosition().getZ();
+
+        moveRelativeWrapper(11.37-current_x, -5.75-current_y, 4.5-current_z,
+                0, 0, 0, 1);
+        kinematic = api.getTrustedRobotKinematics();
+        current_x = kinematic.getPosition().getX();
+        current_y = kinematic.getPosition().getY();
+        current_z = kinematic.getPosition().getZ();
+
+        Bitmap qr0 = api.getBitmapNavCam();
+
+        moveRelativeWrapper(11-current_x, -6-current_y, 5.45-current_z,
+                0, -0.7071068, 0, 0.7071068);
+
+        kinematic = api.getTrustedRobotKinematics();
+        current_x = kinematic.getPosition().getX();
+        current_y = kinematic.getPosition().getY();
+        current_z = kinematic.getPosition().getZ();
+
+        Bitmap qr1 = api.getBitmapNavCam();
+
+        moveRelativeWrapper(11-current_x, -5.5-current_y, 4.43-current_z,
+                0, 0.7071068, 0, 0.7071068);
+
+        kinematic = api.getTrustedRobotKinematics();
+        current_x = kinematic.getPosition().getX();
+        current_y = kinematic.getPosition().getY();
+        current_z = kinematic.getPosition().getZ();
+
+        Bitmap qr2 = api.getBitmapNavCam();
+
+        decodeWithZbar(0, qr0);
+        decodeWithZbar(1, qr1);
+        decodeWithZbar(2, qr2);
+
+        api.judgeSendFinishSimulation();
+
+        //////////////////////////////////////////////
+
+        moveRelativeWrapper(11.25-current_x, -3.75-current_y, 4.85-current_z,
+                0, 0, 0, 1);
+
+
         moveToWrapper(11.25, -3.75, 4.85, 0, 0, 0, 1, 99);
         Log.i("SPACECAT", "Destination is reached");
         moveToWrapper(11.37, -5.75, 4.5, 0, 0, 0, 1, 0);
         Log.i("SPACECAT", "Destination is reached");
-        Bitmap qr0 = api.getBitmapNavCam();
+        //Bitmap qr0 = api.getBitmapNavCam();
         //decodeQRCode(0);
         moveToWrapper(11, -6, 5.45, 0, -0.7071068, 0, 0.7071068, 1);
         Log.i("SPACECAT", "Destination is reached");
-        Bitmap qr1 = api.getBitmapNavCam();
+        //Bitmap qr1 = api.getBitmapNavCam();
         //decodeQRCode(1);
         moveToWrapper(11, -5.5, 4.43, 0, 0.7071068, 0, 0.7071068, 2);
         Log.i("SPACECAT", "Destination is reached");
-        Bitmap qr2 = api.getBitmapNavCam();
+        //Bitmap qr2 = api.getBitmapNavCam();
         //decodeQRCode(2);
 
         decodeWithZbar(0, qr0);
@@ -135,6 +270,17 @@ public class YourService extends KiboRpcService {
 
     }
 
+    private void moveRelativeWrapper(double pos_x, double pos_y, double pos_z,
+                                     double qua_x, double qua_y, double qua_z,
+                                     double qua_w){
+
+        final Point point = new Point(pos_x, pos_y, pos_z);
+        final Quaternion quaternion = new Quaternion((float) qua_x, (float) qua_y,
+                (float) qua_z, (float) qua_w);
+
+        api.relativeMoveTo(point, quaternion, false);
+
+    }
 
     private void moveToWrapper(double pos_x, double pos_y, double pos_z,
                                double qua_x, double qua_y, double qua_z,
