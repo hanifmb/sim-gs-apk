@@ -50,16 +50,20 @@ public class YourService extends KiboRpcService {
         Log.i("SPACECAT", "Destination is reached");
         moveToWrapper(11.37, -5.75, 4.5, 0, 0, 0, 1, 0);
         Log.i("SPACECAT", "Destination is reached");
-        decodeWithZbar();
-        decodeWithZbar();
-        decodeWithZbar();
+        Bitmap qr0 = api.getBitmapNavCam();
         //decodeQRCode(0);
         moveToWrapper(11, -6, 5.45, 0, -0.7071068, 0, 0.7071068, 1);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(1);
+        Bitmap qr1 = api.getBitmapNavCam();
+        //decodeQRCode(1);
         moveToWrapper(11, -5.5, 4.43, 0, 0.7071068, 0, 0.7071068, 2);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(2);
+        Bitmap qr2 = api.getBitmapNavCam();
+        //decodeQRCode(2);
+
+        decodeWithZbar(0, qr0);
+        decodeWithZbar(1, qr1);
+        decodeWithZbar(2, qr2);
 
         moveToWrapper(10.45, -6.45, 4.7, 0, 0, 0.7071068, -0.7071068, 99);
         Log.i("SPACECAT", "Destination is reached");
@@ -72,14 +76,21 @@ public class YourService extends KiboRpcService {
 
         moveToWrapper(10.40, -7.5, 4.7, 0, 0, 1, 0, 3);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(3);
+
+        Bitmap qr3 = api.getBitmapNavCam();
+        //decodeQRCode(3);
         moveToWrapper(11.40, -8, 5, 0, 0, 0, 1, 4);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(4);
+        Bitmap qr4 = api.getBitmapNavCam();
+        //decodeQRCode(4);
         moveToWrapper(11, -7.7, 5.45, 0, -0.7071068, 0, 0.7071068, 5);
         Log.i("SPACECAT", "Destination is reached");
-        decodeQRCode(5);
+        Bitmap qr5 = api.getBitmapNavCam();
+        //decodeQRCode(5);
 
+        decodeWithZbar(3, qr3);
+        decodeWithZbar(4, qr4);
+        decodeWithZbar(5, qr5);
         api.judgeSendFinishSimulation();
 
 
@@ -151,7 +162,7 @@ public class YourService extends KiboRpcService {
         }
     }
 
-    private void decodeWithZbar(){
+    private void decodeWithZbar(int target_qr, Bitmap navcam_bitmap){
         ImageScanner scanner;
         scanner = new ImageScanner();
 
@@ -179,7 +190,7 @@ public class YourService extends KiboRpcService {
         scanner.setConfig(Symbol.PDF417, Config.ENABLE, 1);
 
         Mat navcam_mat;
-        Bitmap navcam_bitmap = api.getBitmapNavCam();
+        //Bitmap navcam_bitmap = api.getBitmapNavCam();
 
         int width = navcam_bitmap.getWidth();
         int height = navcam_bitmap.getHeight();
@@ -198,23 +209,33 @@ public class YourService extends KiboRpcService {
         barcode.setData(pixelsData);
 
         int result = scanner.scanImage(barcode);
+        int retry_times = 0;
+        int MAX_RETRY_TIMES = 5;
+
+        while(result == 0 && retry_times < MAX_RETRY_TIMES){
+            result = scanner.scanImage(barcode);
+            retry_times++;
+
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         String resultStr = null;
 
         if (result != 0) {
             SymbolSet syms = scanner.getResults();
             for (Symbol sym : syms) {
                 resultStr = sym.getData();
+                api.judgeSendDiscoveredQR(target_qr, resultStr);
                 Log.i("QRCODE FOUND BABYYYYY", resultStr);
             }
         }else{
             Log.i("QRCODE IS NOT BABYYYYY", "SADDD");
         }
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
 
