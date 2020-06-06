@@ -57,8 +57,7 @@ public class YourService extends KiboRpcService {
     protected void runPlan1() {
 
         api.judgeSendStart();
-
-        //Move to transition point 1
+        //First transition point
         moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
 
         //Scanning the first 3 QR Codes
@@ -112,8 +111,13 @@ public class YourService extends KiboRpcService {
             double p3_posx = qr_pos_x + offset_ar_largest[0] + offset_target_laser_x + offset_camera_x + added_offset_x;
             double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
 
-            //move to target p3 for lasering
-            moveToWrapper(p3_posx, qr_pos_y , p3_posz , 0, 0, 0.707, -0.707, 99);
+            //move to target p3 for lasering (with plan B)
+            if(!moveToWrapper(p3_posx, qr_pos_y-0.2 , p3_posz ,
+                0, 0, 0.707, -0.707, 99)){
+
+                moveToWrapper(p3_posx, qr_pos_y-0.1 , p3_posz , 0, 0, 0.707, -0.707, 99);
+
+            }
 
             api.laserControl(true);
 
@@ -149,7 +153,7 @@ public class YourService extends KiboRpcService {
             double p3_posx = qr_pos_x + offset_ar_largest[0] + offset_target_laser_x + offset_camera_x + added_offset_x;
             double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
 
-            moveToWrapper(p3_posx, -9.58091874748 , p3_posz , 0, 0, 0.707, -0.707, 99);
+            moveToWrapper(p3_posx, -9.78091874748 , p3_posz , 0, 0, 0.707, -0.707, 99);
 
             api.laserControl(true);
 
@@ -188,29 +192,29 @@ public class YourService extends KiboRpcService {
 
     }
 
-    private void moveToWrapper(double pos_x, double pos_y, double pos_z,
+    private Boolean moveToWrapper(double pos_x, double pos_y, double pos_z,
                                double qua_x, double qua_y, double qua_z,
                                double qua_w, int abs_point) {
 
-        Log.i("SPACECAT","moveToWrapper function is called, moving bee to QR" + abs_point);
-
-        final int LOOP_MAX = 0;
         final Point point = new Point(pos_x, pos_y, pos_z);
         final Quaternion quaternion = new Quaternion((float) qua_x, (float) qua_y,
                 (float) qua_z, (float) qua_w);
 
-        Log.i("SPACECAT","[" + 0 + "] Calling api.moveTo");
-        Result result = api.moveTo(point, quaternion, false);
-        Log.i("SPACECAT","[" + 0 + "] result: " + result.getMessage());
+        Result result;
 
-        int loopCounter = 1;
-        while (!result.hasSucceeded() || loopCounter <= LOOP_MAX) {
+        Boolean has_arrived = false;
 
-            Log.i("SPACECAT","[" + loopCounter + "] Calling API moveTo");
+        for (int i = 0; (i < 30) && !has_arrived; i++){
             result = api.moveTo(point, quaternion, false);
-            Log.i("SPACECAT","[" + loopCounter + "] result: " + result.getMessage());
-            ++loopCounter;
+            has_arrived = result.hasSucceeded();
 
+            //if (result.getStatus().toString() != "OK(1)"){break;}
+        }
+
+        if(has_arrived){
+            return true;
+        }else{
+            return false;
         }
     }
 
@@ -423,8 +427,16 @@ public class YourService extends KiboRpcService {
 
     }
 
+    private boolean trustedQRDecode(int target_qr, boolean useNavcam, boolean doCalibrate){
+        if (!decodeQRCode (target_qr, doCalibrate)){
+            if(!decodeQRCode(target_qr, doCalibrate)){
+                return true;
+            }
+        }
+        return false;
+    }
 
-    private Void decodeQRCode(int target_qr, boolean useNavcam) {
+    private Boolean decodeQRCode(int target_qr, boolean useNavcam) {
 
         QRCodeReader reader = new QRCodeReader();
 
