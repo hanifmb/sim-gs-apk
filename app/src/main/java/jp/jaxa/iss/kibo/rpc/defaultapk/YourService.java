@@ -22,6 +22,7 @@ import com.google.zxing.qrcode.QRCodeReader;
 
 import org.opencv.android.Utils;
 import org.opencv.aruco.Aruco;
+import org.opencv.aruco.DetectorParameters;
 import org.opencv.aruco.Dictionary;
 import org.opencv.core.CvException;
 import org.opencv.core.CvType;
@@ -58,7 +59,7 @@ public class YourService extends KiboRpcService {
 
         api.judgeSendStart();
         //First transition point
-        moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
+        Boolean first = moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
 
         //Scanning the first 3 QR Codes
         moveToWrapper(11, -5.5, 4.40, 0.500, 0.500, -0.500, 0.500, 2);
@@ -102,8 +103,8 @@ public class YourService extends KiboRpcService {
             double offset_target_laser_z = 0.141421356;
             double offset_camera_x = -0.0572;
             double offset_camera_z = 0.1111;
-            double added_offset_x = -0.047;
-            double added_offset_z = -0.072;
+            double added_offset_x = -0.051;
+            double added_offset_z = -0.075;
 
             //Acquiring translation vector as the error offset
             double[] offset_ar_largest = offset_ar.get(0, 0);
@@ -112,10 +113,10 @@ public class YourService extends KiboRpcService {
             double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
 
             //move to target p3 for lasering (with plan B)
-            if(!moveToWrapper(p3_posx, qr_pos_y-0.2 , p3_posz ,
+            if(!moveToWrapper(p3_posx, qr_pos_y , p3_posz ,
                 0, 0, 0.707, -0.707, 99)){
 
-                moveToWrapper(p3_posx, qr_pos_y-0.1 , p3_posz , 0, 0, 0.707, -0.707, 99);
+                moveToWrapper(p3_posx, qr_pos_y+0.1 , p3_posz , 0, 0, 0.707, -0.707, 99);
 
             }
 
@@ -135,50 +136,60 @@ public class YourService extends KiboRpcService {
 
     @Override
     protected void runPlan2() {
-        double qr_pos_x = 11.1559620248;
-        double qr_pos_z = 4.95903053701;
-        double offset_target_laser_x = 0.141421356; //0.1*sqrt(2) m
-        double offset_target_laser_z = 0.141421356;
-        double offset_camera_x = -0.0572;
-        double offset_camera_z = 0.1111;
-        double added_offset_x = -0.047;
-        double added_offset_z = -0.072;
-        Mat offset_ar;
 
-        offset_ar = decode_AR();
+        api.judgeSendStart();
+        //First transition point
+        Boolean first = moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
 
-        if(offset_ar != null){
-            double[] offset_ar_largest = offset_ar.get(0, 0);
-
-            double p3_posx = qr_pos_x + offset_ar_largest[0] + offset_target_laser_x + offset_camera_x + added_offset_x;
-            double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
-
-            moveToWrapper(p3_posx, -9.78091874748 , p3_posz , 0, 0, 0.707, -0.707, 99);
-
-            api.laserControl(true);
-
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        }else{
-            api.judgeSendFinishSimulation();
-        }
-
-
+        //Scanning the first 3 QR Codes
+        moveToWrapper(11, -5.5, 4.40, 0.500, 0.500, -0.500, 0.500, 2);
+        decodeQRCodeLongRange(2, true);
+        moveToWrapper(11.1, -5.70, 4.5, 0, 0, 0, 1, 0);
+        decodeQRCodeLongRange(0, true);
+        moveToWrapper(11, -6, 5.2,  0.707, 0,  0.707, 0, 1);
+        decodeQRCodeLongRange(1, true);
 
     }
 
     @Override
     protected void runPlan3() {
 
+        double qr_pos_x = 11.1559620248;
+        double qr_pos_y = -9.58091874748;
+        double qr_pos_z = 4.95903053701;
 
-        //ImageSaver.save_image(undistored);
+        Mat offset_ar = decode_AR();
+
+        if (offset_ar != null) {
+
+            //Offset data for lasering
+            double offset_target_laser_x = 0.141421356; //0.1*sqrt(2) m
+            double offset_target_laser_z = 0.141421356;
+            double offset_camera_x = -0.0572;
+            double offset_camera_z = 0.1111;
+            double added_offset_x = -0.047;
+            double added_offset_z = -0.073;
+
+            //Acquiring translation vector as the error offset
+            double[] offset_ar_largest = offset_ar.get(0, 0);
+
+            double p3_posx = qr_pos_x + offset_ar_largest[0] + offset_target_laser_x + offset_camera_x + added_offset_x;
+            double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
+
+            //move to target p3 for lasering (with plan B)
+            if (!moveToWrapper(p3_posx, qr_pos_y, p3_posz,
+                    0, 0, 0.707, -0.707, 99)) {
+                Log.i("MOVEMOVEMOVE", "WERE USING PLAN B");
+                moveToWrapper(p3_posx, qr_pos_y, p3_posz, 0, 0, 0.707, -0.707, 99);
+
+            }
+
+            api.laserControl(true);
+
+        }
 
 
-    }
+        }
 
     private void moveRelativeWrapper(double pos_x, double pos_y, double pos_z,
                                      double qua_x, double qua_y, double qua_z,
@@ -196,26 +207,29 @@ public class YourService extends KiboRpcService {
                                double qua_x, double qua_y, double qua_z,
                                double qua_w, int abs_point) {
 
+        Log.i("SPACECAT", "moveToWrapper function is called, moving bee to QR" + abs_point);
+
+        final int LOOP_MAX = 30;
         final Point point = new Point(pos_x, pos_y, pos_z);
         final Quaternion quaternion = new Quaternion((float) qua_x, (float) qua_y,
                 (float) qua_z, (float) qua_w);
 
-        Result result;
+        Log.i("SPACECAT", "[" + 0 + "] Calling api.moveTo");
+        Result result = api.moveTo(point, quaternion, false);
+        Log.i("SPACECAT", "[" + 0 + "] result: " + result.getMessage());
 
-        Boolean has_arrived = false;
+        int loopCounter = 1;
+        while (!result.hasSucceeded() && loopCounter <= LOOP_MAX) {
 
-        for (int i = 0; (i < 30) && !has_arrived; i++){
+            Log.i("SPACECAT", "[" + loopCounter + "] Calling API moveTo");
             result = api.moveTo(point, quaternion, false);
-            has_arrived = result.hasSucceeded();
+            Log.i("SPACECAT", "[" + loopCounter + "] result: " + result.getMessage());
+            ++loopCounter;
 
-            //if (result.getStatus().toString() != "OK(1)"){break;}
         }
 
-        if(has_arrived){
-            return true;
-        }else{
-            return false;
-        }
+        Boolean arrived = result.hasSucceeded() ? true : false;
+        return arrived;
     }
 
     private double cal_error(double setpoint_state, double current_state){
@@ -509,6 +523,107 @@ public class YourService extends KiboRpcService {
                     }
 
                     Log.i("QR FOUND: ", qr_string);
+                    return true;
+                }
+
+            } catch (Exception e) {
+                Log.i("QR NOT FOUND", Integer.toString(retryTimes));
+                qr_string = "";
+            }
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            retryTimes++;
+        }
+
+        return false;
+    }
+
+    private Boolean decodeQRCodeLongRange(int target_qr, boolean useNavcam) {
+
+        QRCodeReader reader = new QRCodeReader();
+
+        Mat navcam_mat;
+        Mat navcam_mat_undistort = new Mat();
+        Bitmap navcam_bit_undistort;
+
+        Size sz = new Size(640,480);
+
+        //get camera data once to initialize width, height and pixels
+        BinaryBitmap navcam_bin;
+        com.google.zxing.Result result;
+        RGBLuminanceSource navcam_luminance;
+
+        int MAX_RETRY_TIMES = 7;
+        int retryTimes = 0;
+
+        String qr_string = "";
+
+        while (qr_string == "" && retryTimes < MAX_RETRY_TIMES) {
+
+            try{
+
+                reader.reset();
+
+                //get navcam matrix
+                if(useNavcam){
+                    navcam_mat = api.getMatNavCam();
+                }else{
+                    navcam_mat = api.getMatDockCam();
+                }
+
+
+                navcam_mat_undistort = navcam_mat;
+
+                //Imgproc.resize(navcam_mat, navcam_mat_undistort, sz );
+                
+                Rect roi = new Rect(320, 240, 640, 480);
+                navcam_mat_undistort = new Mat(navcam_mat, roi);
+
+                //ImageSaver saver = new ImageSaver();
+                //saver.save_image(navcam_mat_undistort);
+
+
+                //Convert navcam to bitmaps
+                navcam_bit_undistort = matToBitmap(navcam_mat_undistort);
+
+
+                //Getting pixels data
+                int width = navcam_bit_undistort.getWidth();
+                int height = navcam_bit_undistort.getHeight();
+                int[] navcam_pixels = new int[width * height];
+
+                //get the pixels out of bitmap
+                navcam_bit_undistort.getPixels(navcam_pixels, 0, width, 0, 0, width, height);
+
+                //get the luminance data
+                navcam_luminance = new RGBLuminanceSource(width, height, navcam_pixels);
+
+                //convert to binary image
+                navcam_bin = new BinaryBitmap(new HybridBinarizer(navcam_luminance));
+
+                //decoding QR result
+                result = reader.decode(navcam_bin);
+                qr_string = result.getText();
+
+                if (qr_string != "") {
+
+                    api.judgeSendDiscoveredQR(target_qr, qr_string);
+
+                    switch(target_qr){
+                        case 0: QRData.pos_x = remove_identifier(qr_string); break;
+                        case 1: QRData.pos_y = remove_identifier(qr_string); break;
+                        case 2: QRData.pos_z = remove_identifier(qr_string); break;
+                        case 3: QRData.qua_x= remove_identifier(qr_string); break;
+                        case 4: QRData.qua_y = remove_identifier(qr_string); break;
+                        case 5: QRData.qua_z = remove_identifier(qr_string); break;
+                    }
+
+                    Log.i("QR FOUND: ", qr_string);
                 }
 
             } catch (Exception e) {
@@ -573,7 +688,7 @@ public class YourService extends KiboRpcService {
         Mat markerIds = new Mat();
         List<Mat> corners= new ArrayList<>();
         List<Mat> rejected= new ArrayList<>();
-        Dictionary dictionary = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_50);
+        Dictionary dictionary = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
 
         Mat camMatrix = new Mat(3, 3, CvType.CV_32F);
         Mat distCoeff = new Mat(1, 5, CvType.CV_32F);
@@ -589,13 +704,13 @@ public class YourService extends KiboRpcService {
         Mat nav_cam = api.getMatNavCam();
         //Mat dst = undistort_camera(nav_cam);
 
-        /*
+
         DetectorParameters parameters = DetectorParameters.create();
         parameters.set_minDistanceToBorder(0);
         parameters.set_adaptiveThreshWinSizeMax(400);
-        */
 
-        for (int i = 0; i < 3 && markerIds.cols() == 0 && markerIds.rows() == 0; i++){
+
+        for (int i = 0; i < 5 && markerIds.cols() == 0 && markerIds.rows() == 0; i++){
 
             Aruco.detectMarkers(nav_cam/*dst*/, dictionary, corners, markerIds /*, parameters, rejected*/);
 
@@ -642,7 +757,6 @@ public class YourService extends KiboRpcService {
     }
 
 }
-
 
 //Struct like container for QR position and quaternion string data
 class QRData {
