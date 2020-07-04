@@ -57,12 +57,13 @@ public class YourService extends KiboRpcService {
     @Override
     protected void runPlan1() {
 
+
+
+
         api.judgeSendStart();
-        //First transition point
-        Boolean first = moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
 
         //Scanning the first 3 QR Codes
-        moveToWrapper(11, -5.5, 4.40, 0.500, 0.500, -0.500, 0.500, 2);
+        moveToWrapper(11, -5.60, 4.33, 0.500, 0.500, -0.500, 0.500, 2);
         decodeQRCode(2, true);
         moveToWrapper(11.37, -5.70, 4.5, 0, 0, 0, 1, 0);
         decodeQRCode(0, true);
@@ -70,28 +71,47 @@ public class YourService extends KiboRpcService {
         decodeQRCode(1, true);
 
         //Another three transition point
-        moveToWrapper(10.45, -6.25, 4.7, 0, 0, 0.7071068, -0.7071068, 99);
-        moveToWrapper(10.45, -6.75, 4.7, 0, 0, 0, 1, 99);
-        moveToWrapper(10.95, -6.75, 4.7, 0, 0, 0, 1, 99);
+
+        /*
+        moveToWrapper(10.45, -6.35, 5, 0, 0, 0.7071068, -0.7071068, 99);
+        moveToWrapper(10.45, -6.6, 5, 0, 0, 0, 1, 99);
+        moveToWrapper(10.95, -6.85, 5, -0, 0, -0.125, 0.977, 99);
+        */
+
+        moveToWrapper(10.37, -6.4, 5.45,  -0.068,  0.182, -0.926,  0.323, 99);
+        moveToWrapper(11+0.1, -7.1, 5.45, 0, 0, 0.7071068, -0.7071068, 99);
+
+        moveToWrapper(11, -7.7, 5.45, 0.500, 0.500, -0.500, 0.500, 5);
+        decodeQRCode(5, false);
+        moveToWrapper(11.40, -8, 5, 0, 0, 0, 1, 4);
+        decodeQRCode(4, true);
+        moveToWrapper(10.40, -7.5, 4.7, 0, 0, 1, 0, 3);
+        decodeQRCode(3, true);
 
         //Scanning the last 3 QR Codes
+
+        /*
         moveToWrapper(11.40, -8, 5, 0, 0, 1, 0, 4);
         decodeQRCode(4, false);
         moveToWrapper(11, -7.7, 5.45, 0.707, 0,  0.707, 0, 5);
         decodeQRCode(5, true);
         moveToWrapper(10.40, -7.5, 4.7, 0, 0, 1, 0, 3);
         decodeQRCode(3, true);
+        */
 
-        //Move to AR transition point
-        moveToWrapper(10.95, -9.1, 4.9, 0, 0, 0.7071068, -0.7071068, 99);
+        //Go to airlock center
+        moveToWrapper(10.95, -9.1, 4.9, -0.101, -0.135, -0.59, 0.79, 99);
 
-        //Get the final AR position
-        double qr_pos_x = Double.valueOf(QRData.pos_x);
-        double qr_pos_y = Double.valueOf(QRData.pos_y);
-        double qr_pos_z = Double.valueOf(QRData.pos_z);
+        //Get AR Position to scan
+        double qr_pos_x = QRData.pos_x != null && QRData.pos_z != null ? Double.valueOf(QRData.pos_x) : 999;
+        double qr_pos_y = -9.58091874748;
+        double qr_pos_z = QRData.pos_x != null && QRData.pos_z != null ? Double.valueOf(QRData.pos_z) : 999;
 
-        //Move to AR
-        moveToWrapper(qr_pos_x, qr_pos_y , qr_pos_z , 0, 0, 0.707, -0.707, 99);
+        //If position is not present then finish simulation
+        if (qr_pos_x == 999 || qr_pos_z == 999){ api.judgeSendFinishSimulation(); }
+
+        //Move to AR to scan
+        moveToWrapper(qr_pos_x, -9.47, qr_pos_z, 0, 0, 0.7071068, -0.7071068, 99);
 
         //Scanning AR Code (returning translation vector)
         Mat offset_ar = decode_AR();
@@ -103,7 +123,7 @@ public class YourService extends KiboRpcService {
             double offset_target_laser_z = 0.141421356;
             double offset_camera_x = -0.0572;
             double offset_camera_z = 0.1111;
-            double added_offset_x = -0.051;
+            double added_offset_x = -0.054;
             double added_offset_z = -0.075;
 
             //Acquiring translation vector as the error offset
@@ -113,22 +133,15 @@ public class YourService extends KiboRpcService {
             double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
 
             //move to target p3 for lasering (with plan B)
-            if(!moveToWrapper(p3_posx, qr_pos_y , p3_posz ,
-                0, 0, 0.707, -0.707, 99)){
-
-                moveToWrapper(p3_posx, qr_pos_y+0.1 , p3_posz , 0, 0, 0.707, -0.707, 99);
-
-            }
+            moveToWrapper(p3_posx, qr_pos_y , p3_posz , 0, 0, 0.707, -0.707, 99);
 
             api.laserControl(true);
-
             api.judgeSendFinishSimulation();
 
         } else{
-
+            //If AR not detected then finish simulation
             api.judgeSendFinishSimulation();
         }
-
 
     }
 
@@ -137,19 +150,53 @@ public class YourService extends KiboRpcService {
     @Override
     protected void runPlan2() {
 
-        api.judgeSendStart();
-        //First transition point
-        Boolean first = moveToWrapper(11, -4.7, 4.53, 0.05, 0.049, -0.705, 0.705, 99);
 
-        //Scanning the first 3 QR Codes
-        moveToWrapper(11, -5.5, 4.40, 0.500, 0.500, -0.500, 0.500, 2);
-        decodeQRCodeLongRange(2, true);
-        moveToWrapper(11.1, -5.70, 4.5, 0, 0, 0, 1, 0);
-        decodeQRCodeLongRange(0, true);
-        moveToWrapper(11, -6, 5.2,  0.707, 0,  0.707, 0, 1);
-        decodeQRCodeLongRange(1, true);
+
+        //Get AR Position to scan
+        double qr_pos_x = 11.1559620248;
+        double qr_pos_y = -9.58091874748;
+        double qr_pos_z = 4.95903053701;
+
+        //If position is not present then finish simulation
+        if (qr_pos_x == 999 || qr_pos_z == 999){ api.judgeSendFinishSimulation(); }
+
+        //Move to AR to scan
+        moveToWrapper(qr_pos_x, qr_pos_y, qr_pos_z, 0, 0, 0.7071068, -0.7071068, 99);
+
+        //Scanning AR Code (returning translation vector)
+        Mat offset_ar = decode_AR();
+
+        if (offset_ar != null){
+
+            //Offset data for lasering
+            double offset_target_laser_x = 0.141421356; //0.1*sqrt(2) m
+            double offset_target_laser_z = 0.141421356;
+            double offset_camera_x = -0.0572;
+            double offset_camera_z = 0.1111;
+            double added_offset_x = -0.025;
+            double added_offset_z = -0.086;
+
+            //Acquiring translation vector as the error offset
+            double[] offset_ar_largest = offset_ar.get(0, 0);
+
+            double p3_posx = qr_pos_x + offset_ar_largest[0] + offset_target_laser_x + offset_camera_x + added_offset_x;
+            double p3_posz = qr_pos_z + offset_ar_largest[1] + offset_target_laser_z + offset_camera_z + added_offset_z;
+
+            //move to target p3 for lasering (with plan B)
+            moveToWrapper(p3_posx, qr_pos_y , p3_posz , 0, 0, 0.707, -0.707, 99);
+
+            api.laserControl(true);
+            api.judgeSendFinishSimulation();
+
+        } else{
+            //If AR not detected then finish simulation
+            api.judgeSendFinishSimulation();
+        }
+
 
     }
+
+
 
     @Override
     protected void runPlan3() {
@@ -215,14 +262,14 @@ public class YourService extends KiboRpcService {
                 (float) qua_z, (float) qua_w);
 
         Log.i("SPACECAT", "[" + 0 + "] Calling api.moveTo");
-        Result result = api.moveTo(point, quaternion, false);
+        Result result = api.moveTo(point, quaternion, true);
         Log.i("SPACECAT", "[" + 0 + "] result: " + result.getMessage());
 
         int loopCounter = 1;
         while (!result.hasSucceeded() && loopCounter <= LOOP_MAX) {
 
             Log.i("SPACECAT", "[" + loopCounter + "] Calling API moveTo");
-            result = api.moveTo(point, quaternion, false);
+            result = api.moveTo(point, quaternion, true);
             Log.i("SPACECAT", "[" + loopCounter + "] result: " + result.getMessage());
             ++loopCounter;
 
@@ -707,12 +754,13 @@ public class YourService extends KiboRpcService {
 
         DetectorParameters parameters = DetectorParameters.create();
         parameters.set_minDistanceToBorder(0);
-        parameters.set_adaptiveThreshWinSizeMax(400);
-
+        parameters.set_minMarkerPerimeterRate(0.01);
+        parameters.set_maxMarkerPerimeterRate(4);
+        parameters.set_polygonalApproxAccuracyRate(0.08);
 
         for (int i = 0; i < 5 && markerIds.cols() == 0 && markerIds.rows() == 0; i++){
 
-            Aruco.detectMarkers(nav_cam/*dst*/, dictionary, corners, markerIds /*, parameters, rejected*/);
+            Aruco.detectMarkers(nav_cam/*dst*/, dictionary, corners, markerIds, parameters, rejected, camMatrix, distCoeff );
 
             if(markerIds.cols() != 0 && markerIds.rows() != 0){
 
