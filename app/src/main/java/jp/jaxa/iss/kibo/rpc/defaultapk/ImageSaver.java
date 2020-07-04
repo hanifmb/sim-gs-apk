@@ -24,7 +24,7 @@ public class ImageSaver {
             Log.d(TAG, e.getMessage());
         }
 
-        subimg.release();
+        //subimg.release();
 
 
         FileOutputStream out = null;
